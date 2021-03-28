@@ -1,7 +1,6 @@
-const qs = require("querystring");
+const { getTexts, buildString } = require("../utils")
 
 module.exports = class QuestionFinder {
-
     constructor(data, test) {
         this.data = data;
         this.test = test
@@ -10,46 +9,8 @@ module.exports = class QuestionFinder {
         this.height = data.formImage.Pages[0].Height;
         this.width = data.formImage.Width;
 
-        this.combined = this.buildString(data, ...this.PAGES);
-    }
-
-    getTexts(data, start, end) {
-        return data.formImage.Pages.slice(start, end + 1).map(page => page.Texts)
-    }
-
-    buildString(data, start, end) {
-        const pages = this.getTexts(data, start, end)
-
-        let output = []
-        for (const page of pages) {
-            let str = "";
-            let indexMap = []
-            for (const i in page) {
-                const s = qs.unescape(page[i].R[0].T);
-                // Add text to string
-                str += s
-                // The next s.length entires in the index array are the current index
-                indexMap.push(...new Array(s.length).fill(parseInt(i)))
-            }
-            output.push({ str, indexMap })
-        }
-        return output
-    }
-
-    splitByIndexes(data, indexes) {
-        const splits = []
-        for (let i = 0; i < indexes.length; i++) {
-            const { index, page } = indexes[i]
-            // If at end of array next will be undefined which includes the rest
-            let { index: nextIndex, page: nextPage } = indexes[i + 1] ?? {}
-
-            // If next is on next page, set next to undefined which includes the rest
-            if (nextPage > page) nextIndex = undefined
-
-            // Slice based on index and nest and append
-            splits.push(data[page].slice(index, nextIndex))
-        }
-        return splits
+        this.texts = getTexts(this.data, this.PAGES)
+        this.combined = buildString(this.texts, this.PAGES);
     }
 
     formatCoordinates(top, left, right, bottom) {
@@ -76,6 +37,28 @@ module.exports = class QuestionFinder {
             { x: left, y: top },
             { x: right, y: bottom }
         ]
+    }
+
+    findPageSplits(indexes) {
+        const pages = []
+        for (let i = 1; i < this.PAGES.length; i++) {
+            pages.push(indexes.findIndex(index => index.page === i))
+        }
+        return pages
+    }
+
+    findTopLefts(questions, pageSplits, height) {
+        return questions.map((question, i) => {
+            // For last question on each page, filter out the ones that dont make sense
+            if (pageSplits.includes(i - 1) || i === questions.length - 1) question = question.filter(text => text.y > height * .75);
+
+            const top = Math.min(...question.map(text => text.y));
+            const left = Math.min(...question.map(text => text.x));
+            return {
+                question: i + 1,
+                top, left
+            };
+        });
     }
 
     run() { }

@@ -1,7 +1,7 @@
 const path = require("path");
 
 module.exports = class Test {
-    constructor(pdfpath, pageCount) {
+    constructor(pdfpath) {
         // Generate basic info
         const { name, dir } = path.parse(pdfpath)
         const pathArr = dir.split("/")

@@ -1,38 +1,38 @@
-const PDFParser = require("pdf2json");
 const path = require("path")
 const fs = require("fs")
-
 const mkdirp = require("mkdirp");
 
 const Test = require("./Test");
-const NsFinder = require("./finders/NsFinder");
+const NsQuestionFinder = require("./finders/NsQuestionFinder");
+const { loadPdf } = require("./utils")
 
 const outputPath = "./output";
 
 module.exports = class TestParser {
+
     constructor(pdfpath) {
         this.pdfpath = pdfpath
         // Create test object
         this.test = new Test(this.pdfpath.split("/").slice(2).join("/"));
 
         this.finders = {
-            "Number Sense": NsFinder
+            "Number Sense": NsQuestionFinder
         }
     }
 
-    saveTest() {
-        mkdirp.sync(path.join(__dirname, outputPath, this.test.info.dir));
+    saveTest(test) {
+        mkdirp.sync(path.join(__dirname, outputPath, test.info.dir));
 
-        const outPath = path.join(outputPath, this.test.info.path + ".json");
-        console.log("Saving " + this.test.info.name)
-        fs.writeFileSync(outPath, JSON.stringify(this.test, null, 4));
+        const outPath = path.join(outputPath, test.info.path + ".json");
+        console.log("Saving " + test.info.name)
+        fs.writeFileSync(outPath, JSON.stringify(test, null, 4));
     }
 
-    setPageInfo() {
+    setPageInfo(test) {
         const pageCount = this.data.formImage.Pages.length;
 
         // Generate page info
-        switch (this.test.info.type) {
+        switch (test.info.type) {
             case "Number Sense":
                 this.test.info.pages = {
                     test: [pageCount - 3, pageCount - 2], // 3rd and second to last
@@ -41,25 +41,20 @@ module.exports = class TestParser {
         }
     }
 
-    run(save) {
+    async run(shouldSave) {
         // Get right finder based on type
-        const Finder = this.finders[this.test.info.type];
-        if (!Finder) return;
+        const questionFinder = this.finders[this.test.info.type];
+        if (!questionFinder) return;
 
         // Load pdf
-        let parser = new PDFParser();
-        parser.on("pdfParser_dataReady", data => {
-            this.data = data
-            // Update page data
-            this.setPageInfo();
-
-            // Create finder and run
-            this.finder = new Finder(this.data, this.test)
-            this.test.boundingBoxes = this.finder.run();
-
-            save ? this.saveTest() : console.log(this.test);
-        })
         console.log("Loading " + this.test.info.name)
-        parser.loadPDF(this.pdfpath);
+        this.data = await loadPdf(this.pdfpath)
+        this.setPageInfo(this.test)
+
+        // Run finder
+        this.test.boundingBoxes = new questionFinder(this.data, this.test).run()
+
+        shouldSave ? this.saveTest(this.test) : console.log(test)
+        return 0;
     }
 }
