@@ -1,12 +1,14 @@
 const path = require("path")
 const fs = require("fs")
 const mkdirp = require("mkdirp");
-
+const qs = require("querystring")
 const Test = require("./Test");
 const NsQuestionFinder = require("./finders/NsQuestionFinder");
-const { loadPdf } = require("./utils")
+const NsAnswerFinder = require("./finders/NsAnswerFinder");
 
-const outputPath = "./output";
+const { loadPdf, save } = require("./utils")
+
+const outputPath = "./output/";
 
 module.exports = class TestParser {
 
@@ -15,8 +17,12 @@ module.exports = class TestParser {
         // Create test object
         this.test = new Test(this.pdfpath.split("/").slice(2).join("/"));
 
-        this.finders = {
+        this.questionFinders = {
             "Number Sense": NsQuestionFinder
+        }
+
+        this.answerFinders = {
+            "Number Sense": NsAnswerFinder
         }
     }
 
@@ -36,23 +42,25 @@ module.exports = class TestParser {
             case "Number Sense":
                 this.test.info.pages = {
                     test: [pageCount - 3, pageCount - 2], // 3rd and second to last
-                    key: [pageCount - 1] // Last
+                    key: [pageCount - 1] // Last page
                 }
         }
     }
 
     async run(shouldSave) {
-        // Get right finder based on type
-        const questionFinder = this.finders[this.test.info.type];
+        // Get right finders based on type
+        const questionFinder = this.questionFinders[this.test.info.type];
+        const answerFinder = this.answerFinders[this.test.info.type];
         if (!questionFinder) return;
 
         // Load pdf
         console.log("Loading " + this.test.info.name)
-        this.data = await loadPdf(this.pdfpath)
+        this.data = await loadPdf(this.pdfpath, [-1])
         this.setPageInfo(this.test)
 
-        // Run finder
+        // Run finders
         this.test.boundingBoxes = new questionFinder(this.data, this.test).run()
+        this.test.answers = new answerFinder(this.data, this.test).run();
 
         shouldSave ? this.saveTest(this.test) : console.log(test)
         return 0;

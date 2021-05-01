@@ -1,6 +1,5 @@
 const { save } = require("../utils");
-const QuestionFinder = require("./QuestionFinder")
-const { splitByIndexes, findStarts } = require("../utils")
+const Finder = require("./Finder")
 
 const exceptionList = {
     "MSNS KO 20-21, 34": ["startParenth"],
@@ -9,25 +8,29 @@ const exceptionList = {
     "MSNS8 20-21, 34": ["startParenth"],
     "MSNS9 20-21, 34": ["startParenth"],
     "MSNS10 20-21, 34": ["startParenth"],
+    "MSNS11 20-21, 34": ["startParenth"],
     "MSNS12 20-21, 34": ["startParenth"],
     "MSNS13 20-21, 34": ["startParenth"],
+    "MSNS REG 20-21, 34": ["startParenth"],
+    "MSNS TU 20-21, 34": ["startParenth"],
+    "HSNS5 20-21, 34": ["startParenth"],
+    "HSNS7 20-21, 34": ["startParenth"],
+    "HSNS8 20-21, 19": ["startParenth"],
 }
 
-const regex = (
-    "(^" + // Start of string
-    "|[\s_]" +  // Previous is whitespace or underscore
-    "|base \\d+" +  // Previous is "base n"
+const startRegex = (
+    "([\s_]" +  // Previous is whitespace or underscore
     "|\\D\\)?" + // Previous is word (ex. fraction, mixed number), can have )
-    "|_\\d+" + // Previous is just base number,
-    "|[a-zA-Z]\\d?)" + // Previous is unit to a power
+    "|(?<=\\))[^\\)]+)" + // If there was underscore before last question num
+
     "\\**"  // Can have *
 ).replace(/\\/g, "\\");
 
 const base = "\\({i}\\)"
 
-module.exports = class NsQuestionFinder extends QuestionFinder {
+module.exports = class NsQuestionFinder extends Finder {
     constructor(data, test) {
-        super(data, test);
+        super(data, test, true);
     }
 
     findCol(start, end) {
@@ -71,13 +74,12 @@ module.exports = class NsQuestionFinder extends QuestionFinder {
     }
 
     run() {
-        this.indexes = findStarts(this.combined, this.test.info.grading.length, base, regex, exceptionList, this.test.info.name, this.PAGES);
-
+        super.run(base, startRegex, exceptionList)
         if (this.indexes?.length !== this.test.info.grading.length) {
-            save("err/" + this.test.info.name, this.combined);
+            save("err/ques" + this.test.info.name, this.combined);
             return console.error("Could not find all questions for " + this.test.info.name);
         }
-        this.questions = splitByIndexes(this.texts, this.indexes);
+
         this.pageSplits = this.findPageSplits(this.indexes);
         this.toplefts = this.findTopLefts(this.questions, this.pageSplits, this.data.formImage.Pages[0].Height);
 

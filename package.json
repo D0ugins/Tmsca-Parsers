@@ -12,6 +12,7 @@
   "dependencies": {
     "glob": "^7.1.6",
     "mkdirp": "^1.0.4",
-    "pdf2json": "^1.2.0"
+    "pdf2json": "^1.2.0",
+    "pdfjs-dist": "^2.7.570"
   }
 }

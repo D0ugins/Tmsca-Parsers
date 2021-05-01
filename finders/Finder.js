@@ -1,16 +1,19 @@
-const { getTexts, buildString } = require("../utils")
+const { getTexts, buildString, findStarts, splitByIndexes } = require("../utils")
 
-module.exports = class QuestionFinder {
-    constructor(data, test) {
+module.exports = class Finder {
+    constructor(data, test, isQuestions) {
         this.data = data;
         this.test = test
-        this.PAGES = test.info.pages.test;
+        this.isQuestions = isQuestions
+
+        this.PAGES = test.info.pages[isQuestions ? "test" : "key"];
 
         this.height = data.formImage.Pages[0].Height;
         this.width = data.formImage.Width;
 
         this.texts = getTexts(this.data, this.PAGES)
         this.combined = buildString(this.texts, this.PAGES);
+
     }
 
     formatCoordinates(top, left, right, bottom) {
@@ -61,5 +64,11 @@ module.exports = class QuestionFinder {
         });
     }
 
-    run() { }
+    run(base, startRegex, exceptionList) {
+        this.indexes = findStarts(this.combined, this.test.info.grading.length, base, startRegex, exceptionList, this.test.info.name, this.PAGES);
+        if (!this.indexes) {
+            return console.error("Could not find all indexes for test " + this.test.info.name)
+        }
+        this.questions = splitByIndexes(this.texts, this.indexes);
+    }
 }
