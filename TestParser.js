@@ -60,7 +60,7 @@ module.exports = class TestParser {
         await fixPdf(this.pdfpath, this.data, this.test.info.pages.key);
 
         // Run finders
-        this.test.boundingBoxes = new questionFinder(this.data, this.test).run()
+        // this.test.boundingBoxes = new questionFinder(this.data, this.test).run()
         this.test.answers = new answerFinder(this.data, this.test).run();
 
         shouldSave ? this.saveTest(this.test) : console.log(test)

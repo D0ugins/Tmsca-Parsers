@@ -27,5 +27,5 @@ console.log = (message, ...optionalArgs) => {
         }
     })
 ) : (
-    parseTest("./tests/Middle/Number Sense/Number Sense 18-19/MSNS13 18-19.pdf")
+    parseTest("./tests/Middle/Calculator/Calculator 20-21/MSCA1 20-21.pdf")
 )

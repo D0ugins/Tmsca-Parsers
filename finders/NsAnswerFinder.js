@@ -1,13 +1,14 @@
-const Finder = require('./Finder')
-const { save, weirdTests, decimalToFrac, fracToDecimal, buildString, improperToMixed } = require('../utils')
+const AnswerFinder = require('./AnswerFinder')
+const { save, decimalToFrac, fracToDecimal, buildString, improperToMixed } = require('../utils')
 const qs = require("querystring")
 
-const base = "\\({i}\\)";
+module.exports = class NsAnswerFinder extends AnswerFinder {
 
-module.exports = class NsAnswerFinder extends Finder {
     constructor(data, test) {
-        super(data, test, false)
+        super(data, test)
     }
+
+    base = "\\({i}\\)";
 
     cleanAnswers() {
         let strings = buildString(this.questions)
@@ -30,7 +31,6 @@ module.exports = class NsAnswerFinder extends Finder {
         })
         return buildString(this.questions)
     }
-
 
     formatAnswer(question, i) {
         const qnum = i + 1;
@@ -153,21 +153,5 @@ module.exports = class NsAnswerFinder extends Finder {
                 return console.error(`Too many choices detected for ${qnum} on ${this.test.info.name}`, str)
         }
         return answer
-    }
-
-    run() {
-        super.run(base, "", {});
-        this.isWeird = weirdTests.includes(this.test.info.name)
-        if (this.indexes?.length !== this.test.info.grading.length) {
-            save("err/ans" + this.test.info.name, this.combined);
-            return console.error("Could not find all answers for " + this.test.info.name);
-        }
-        if (TESTING) {
-            save("questions", this.questions)
-            save("strings", buildString(this.questions))
-        }
-        this.strings = this.cleanAnswers();
-
-        return this.questions.map((question, i) => this.formatAnswer(question, i))
     }
 }

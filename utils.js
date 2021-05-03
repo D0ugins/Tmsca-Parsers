@@ -265,58 +265,6 @@ const splitByIndexes = (data, indexes) => {
     return splits
 }
 
-const findStarts = (combined, count, base, startRegex, exceptionList, name, pages) => {
-    // Find where all the questions start
-    let indexes = [];
-    let currPage = 0;
-    const maxPage = pages.length - 1;
-    const exceptions = Object.keys(exceptionList).filter(key => key.startsWith(name))
-
-    const hasException = exceptions.length > 0;
-    const exceptionNums = exceptions.map(exception => parseInt(exception.split(" ").slice(-1)[0]));
-
-    for (let i = 1; i <= count; i++) {
-        const str = combined[currPage].str;
-        const search = base.replace("{i}", i);
-
-        // Handle tests with messed up formatting
-        if (hasException && exceptionNums.includes(i)) {
-            switch (exceptionList[`${name}, ${i}`][0]) {
-                case "startParenth":
-                    const index = str.indexOf(i + ")");
-                    indexes.push({ page: currPage, index: combined[currPage].indexMap[index] });
-                    break;
-                default:
-                    return console.error("Invalid exception type for " + name + " " + i);
-            }
-            continue;
-        }
-
-        // If first question, ignore stuff before
-        const r = (i === 1 ? "" : startRegex) + search
-        let index = str.search(new RegExp(r))
-
-        // Account for all the stuff detected at start
-        index += str.slice(index).indexOf("(");
-
-        // If cant find probably on next page
-        if (index < 0) {
-            currPage++;
-            // If would put on invalid page something is wrong
-            if (currPage > maxPage) return console.error("Could not find " + i + " for " + name);
-
-            // Find on next page using base
-            index = combined[currPage].str.search(new RegExp(search));
-
-            // If still cant find something went wrong
-            if (index < 0) return console.error("Could not find " + i + " for " + name);
-        }
-        // Get index of the text object that corresponds with that part of the combined string
-        indexes.push({ page: currPage, index: combined[currPage].indexMap[index] });
-    }
-    return indexes
-}
-
 const gcd = (a, b) => b ? gcd(b, a % b) : a
 
 const fracToDecimal = (frac) => {
