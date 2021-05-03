@@ -6,7 +6,7 @@ const Test = require("./Test");
 const NsQuestionFinder = require("./finders/NsQuestionFinder");
 const NsAnswerFinder = require("./finders/NsAnswerFinder");
 
-const { loadPdf, save } = require("./utils")
+const { loadPdf, fixPdf, save } = require("./utils")
 
 const outputPath = "./output/";
 
@@ -55,8 +55,9 @@ module.exports = class TestParser {
 
         // Load pdf
         console.log("Loading " + this.test.info.name)
-        this.data = await loadPdf(this.pdfpath, [-1])
+        this.data = await loadPdf(this.pdfpath)
         this.setPageInfo(this.test)
+        await fixPdf(this.pdfpath, this.data, this.test.info.pages.key);
 
         // Run finders
         this.test.boundingBoxes = new questionFinder(this.data, this.test).run()

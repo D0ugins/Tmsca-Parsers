@@ -9,13 +9,17 @@ const loadPdf = (path, fixPages) => new Promise((resolve, reject) => {
     const parser = new PDFParser();
 
     parser.on("pdfParser_dataReady", async data => {
-        // Fix messed up texts on pages we care about
-        const pages = fixPages.map(page => page + data.formImage.Pages.length)
-        await Promise.all(pages.map(page => fixTexts(data.formImage.Pages[page].Texts, path, page + 1)))
         resolve(data)
     })
     parser.loadPDF(path)
 })
+
+const fixPdf = async (path, data, fixPages) => {
+    // Fix messed up texts on pages we care about
+    const Pages = data.formImage.Pages
+    const pages = fixPages.map(page => (page + Pages.length) % Pages.length)
+    return await Promise.all(pages.map(page => fixTexts(Pages[page].Texts, path, page + 1)))
+}
 
 const getTexts = (data, pages) => pages.map(page => data.formImage.Pages[page].Texts)
 
@@ -342,4 +346,4 @@ const improperToMixed = frac => {
     return `${whole} ${numerator % denominator}/${denominator}`
 }
 
-module.exports = { save, weirdTests, loadPdf, getTexts, buildString, splitByIndexes, findStarts, decimalToFrac, fracToDecimal, improperToMixed }
+module.exports = { save, weirdTests, loadPdf, fixPdf, getTexts, buildString, splitByIndexes, findStarts, decimalToFrac, fracToDecimal, improperToMixed }
