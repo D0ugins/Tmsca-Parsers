@@ -1,33 +1,6 @@
 const { save } = require("../utils");
 const Finder = require("./Finder")
 
-const exceptionList = {
-    "MSNS KO 20-21, 34": ["startParenth"],
-    "MSNS6 20-21, 34": ["startParenth"],
-    "MSNS7 20-21, 34": ["startParenth"],
-    "MSNS8 20-21, 34": ["startParenth"],
-    "MSNS9 20-21, 34": ["startParenth"],
-    "MSNS10 20-21, 34": ["startParenth"],
-    "MSNS11 20-21, 34": ["startParenth"],
-    "MSNS12 20-21, 34": ["startParenth"],
-    "MSNS13 20-21, 34": ["startParenth"],
-    "MSNS REG 20-21, 34": ["startParenth"],
-    "MSNS TU 20-21, 34": ["startParenth"],
-    "HSNS5 20-21, 34": ["startParenth"],
-    "HSNS7 20-21, 34": ["startParenth"],
-    "HSNS8 20-21, 19": ["startParenth"],
-}
-
-const startRegex = (
-    "([\s_]" +  // Previous is whitespace or underscore
-    "|\\D\\)?" + // Previous is word (ex. fraction, mixed number), can have )
-    "|(?<=\\))[^\\)]+)" + // If there was underscore before last question num
-
-    "\\**"  // Can have *
-).replace(/\\/g, "\\");
-
-const base = "\\({i}\\)"
-
 module.exports = class NsQuestionFinder extends Finder {
     constructor(data, test) {
         super(data, test, true);
@@ -73,8 +46,35 @@ module.exports = class NsQuestionFinder extends Finder {
         }
     }
 
+    base = "\\({i}\\)";
+
+    startRegex = (
+        "([\s_]" +  // Previous is whitespace or underscore
+        "|\\D\\)?" + // Previous is word (ex. fraction, mixed number), can have )
+        "|(?<=\\))[^\\)]+)" + // If there was underscore before last question num
+
+        "\\**"  // Can have *
+    ).replace(/\\/g, "\\");
+
+    exceptionList = {
+        "MSNS KO 20-21, 34": ["startParenth"],
+        "MSNS6 20-21, 34": ["startParenth"],
+        "MSNS7 20-21, 34": ["startParenth"],
+        "MSNS8 20-21, 34": ["startParenth"],
+        "MSNS9 20-21, 34": ["startParenth"],
+        "MSNS10 20-21, 34": ["startParenth"],
+        "MSNS11 20-21, 34": ["startParenth"],
+        "MSNS12 20-21, 34": ["startParenth"],
+        "MSNS13 20-21, 34": ["startParenth"],
+        "MSNS REG 20-21, 34": ["startParenth"],
+        "MSNS TU 20-21, 34": ["startParenth"],
+        "HSNS5 20-21, 34": ["startParenth"],
+        "HSNS7 20-21, 34": ["startParenth"],
+        "HSNS8 20-21, 19": ["startParenth"],
+    };
+
     run() {
-        super.run(base, startRegex, exceptionList)
+        super.run()
         if (this.indexes?.length !== this.test.info.grading.length) {
             save("err/ques" + this.test.info.name, this.combined);
             return console.error("Could not find all questions for " + this.test.info.name);

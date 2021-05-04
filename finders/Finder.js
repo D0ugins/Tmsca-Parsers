@@ -1,4 +1,4 @@
-const { getTexts, buildString, findStarts, splitByIndexes } = require("../utils")
+const { getTexts, buildString, splitByIndexes, save } = require("../utils")
 
 module.exports = class Finder {
     constructor(data, test, isQuestions) {
@@ -14,6 +14,9 @@ module.exports = class Finder {
         this.texts = getTexts(this.data, this.PAGES)
         this.combined = buildString(this.texts, this.PAGES);
 
+        if (TESTING) {
+            save("combined", this.combined);
+        }
     }
 
     formatCoordinates(top, left, right, bottom) {
@@ -64,26 +67,28 @@ module.exports = class Finder {
         });
     }
 
-    findStarts(combined, count, base, startRegex, exceptionList, name, pages) {
+    findStarts() {
         // Find where all the questions start
+        const name = this.test.info.name;
+
         let indexes = [];
         let currPage = 0;
-        const maxPage = pages.length - 1;
-        const exceptions = Object.keys(exceptionList).filter(key => key.startsWith(name))
+        const maxPage = this.PAGES.length - 1;
+        const exceptions = Object.keys(this.exceptionList ?? {}).filter(key => key.startsWith(name))
 
         const hasException = exceptions.length > 0;
         const exceptionNums = exceptions.map(exception => parseInt(exception.split(" ").slice(-1)[0]));
 
-        for (let i = 1; i <= count; i++) {
-            const str = combined[currPage].str;
-            const search = base.replace("{i}", i);
+        for (let i = 1; i <= this.test.info.grading.length; i++) {
+            const str = this.combined[currPage].str;
+            const search = this.base.replace("{i}", i);
 
             // Handle tests with messed up formatting
             if (hasException && exceptionNums.includes(i)) {
-                switch (exceptionList[`${name}, ${i}`][0]) {
+                switch (this.exceptionList[`${name}, ${i}`][0]) {
                     case "startParenth":
                         const index = str.indexOf(i + ")");
-                        indexes.push({ page: currPage, index: combined[currPage].indexMap[index] });
+                        indexes.push({ page: currPage, index: this.combined[currPage].indexMap[index] });
                         break;
                     default:
                         return console.error("Invalid exception type for " + name + " " + i);
@@ -92,7 +97,7 @@ module.exports = class Finder {
             }
 
             // If first question, ignore stuff before
-            const r = (i === 1 ? "" : startRegex) + search
+            const r = (i === 1 ? "" : this.startRegex) + search
             let index = str.search(new RegExp(r))
 
             // Account for all the stuff detected at start
@@ -105,19 +110,19 @@ module.exports = class Finder {
                 if (currPage > maxPage) return console.error("Could not find " + i + " for " + name);
 
                 // Find on next page using base
-                index = combined[currPage].str.search(new RegExp(search));
+                index = this.combined[currPage].str.search(new RegExp(search));
 
                 // If still cant find something went wrong
                 if (index < 0) return console.error("Could not find " + i + " for " + name);
             }
             // Get index of the text object that corresponds with that part of the combined string
-            indexes.push({ page: currPage, index: combined[currPage].indexMap[index] });
+            indexes.push({ page: currPage, index: this.combined[currPage].indexMap[index] });
         }
         return indexes
     }
 
-    run(base, startRegex, exceptionList) {
-        this.indexes = this.findStarts(this.combined, this.test.info.grading.length, base, startRegex, exceptionList, this.test.info.name, this.PAGES);
+    run() {
+        this.indexes = this.findStarts();
         if (!this.indexes) {
             return console.error("Could not find all indexes for test " + this.test.info.name)
         }

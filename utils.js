@@ -5,7 +5,7 @@ const PDFJS = require("pdfjs-dist/es5/build/pdf");
 
 const save = async (name, data) => fs.writeFileSync(`./json/${name}.json`, JSON.stringify(data ?? {}, null, 4))
 
-const loadPdf = (path, fixPages) => new Promise((resolve, reject) => {
+const loadPdf = path => new Promise((resolve, reject) => {
     const parser = new PDFParser();
 
     parser.on("pdfParser_dataReady", async data => {
@@ -63,12 +63,14 @@ const startPositons = {
 }
 
 // Find char based on where its path starts in the font decleration (which should uniquely identify a number)
-const fixChar = (objs, char, font) => {
+const fixChar = (objs, char, original, font) => {
     // If just normal char
     if (char.charCodeAt(0) < 255) return char
 
     const path = objs[`${font}_path_${char}`];
-    return startPositons[path.data[3].args[0]];
+    const fixed = startPositons[path.data[3].args[0]];
+
+    return fixed ?? original
 }
 
 const weirdTests = [
@@ -166,8 +168,8 @@ function fixPage(opps, objs, isWeird) {
 
         // Covert weird fontChars to correct nums
         const font = findOp(opps, "setFont", i).args[0]
-        text = text.split("").map(char => fixChar(objs, char, font) ?? "").join("");
-        if (!text) continue;
+        text = text.split("").map((char, i) => fixChar(objs, char, orginal[i], font) ?? "").join("");
+        if (!text || text === orginal) continue;
 
         // If large char spacing split into seperate texts
         const { x, y } = getPosition(opps, i, isWeird);
@@ -294,4 +296,10 @@ const improperToMixed = frac => {
     return `${whole} ${numerator % denominator}/${denominator}`
 }
 
-module.exports = { save, weirdTests, loadPdf, fixPdf, getTexts, buildString, splitByIndexes, findStarts, decimalToFrac, fracToDecimal, improperToMixed }
+const range = (start, end) => {
+    const arr = []
+    for (let i = start; i <= end; i++) { arr.push(i) }
+    return arr
+}
+
+module.exports = { save, weirdTests, loadPdf, fixPdf, getTexts, buildString, splitByIndexes, decimalToFrac, fracToDecimal, improperToMixed, range }

@@ -9,28 +9,8 @@ module.exports = class NsAnswerFinder extends AnswerFinder {
     }
 
     base = "\\({i}\\)";
-
-    cleanAnswers() {
-        let strings = buildString(this.questions)
-
-        // Clear stuff at start of each answer
-        this.questions = this.questions.map((question, i) => {
-            const str = strings[i].str
-            // Get end of (1) section
-            let index = str.indexOf(")") + 1
-            // Get end of whitespace
-            index += str.slice(index).length - str.slice(index).trimStart().length
-            // Remove copyright stuff at end on last question
-            let endIndex;
-            if (i === this.test.info.grading.length - 1) {
-                endIndex = question.findIndex(text => (text.y < 10 || text.R[0].T.includes("Copyright")));
-                if (endIndex < 0) endIndex = undefined
-            }
-
-            return question.slice(strings[i].indexMap[index], endIndex)
-        })
-        return buildString(this.questions)
-    }
+    startRegex = "";
+    exceptionList = {};
 
     formatAnswer(question, i) {
         const qnum = i + 1;

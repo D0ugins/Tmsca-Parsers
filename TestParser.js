@@ -3,10 +3,12 @@ const fs = require("fs")
 const mkdirp = require("mkdirp");
 const qs = require("querystring")
 const Test = require("./Test");
+
 const NsQuestionFinder = require("./finders/NsQuestionFinder");
 const NsAnswerFinder = require("./finders/NsAnswerFinder");
+const CaAnswerFinder = require("./finders/CaAnswerFinder");
 
-const { loadPdf, fixPdf, save } = require("./utils")
+const { loadPdf, fixPdf, range, save } = require("./utils")
 
 const outputPath = "./output/";
 
@@ -22,7 +24,8 @@ module.exports = class TestParser {
         }
 
         this.answerFinders = {
-            "Number Sense": NsAnswerFinder
+            "Number Sense": NsAnswerFinder,
+            "Calculator": CaAnswerFinder
         }
     }
 
@@ -44,6 +47,13 @@ module.exports = class TestParser {
                     test: [pageCount - 3, pageCount - 2], // 3rd and second to last
                     key: [pageCount - 1] // Last page
                 }
+                break;
+            case "Calculator":
+                this.test.info.pages = {
+                    test: range(3, pageCount - 3),
+                    key: [pageCount - 3, pageCount - 2]
+                }
+                break;
         }
     }
 
@@ -51,7 +61,6 @@ module.exports = class TestParser {
         // Get right finders based on type
         const questionFinder = this.questionFinders[this.test.info.type];
         const answerFinder = this.answerFinders[this.test.info.type];
-        if (!questionFinder) return;
 
         // Load pdf
         console.log("Loading " + this.test.info.name)
@@ -60,7 +69,7 @@ module.exports = class TestParser {
         await fixPdf(this.pdfpath, this.data, this.test.info.pages.key);
 
         // Run finders
-        // this.test.boundingBoxes = new questionFinder(this.data, this.test).run()
+        this.test.boundingBoxes = new questionFinder(this.data, this.test).run()
         this.test.answers = new answerFinder(this.data, this.test).run();
 
         shouldSave ? this.saveTest(this.test) : console.log(test)
