@@ -1,11 +1,11 @@
 const Finder = require('./Finder')
-const { save, weirdTests, decimalToFrac, fracToDecimal, buildString, improperToMixed } = require('../utils')
+const { save, buildString } = require('../utils')
 const qs = require("querystring")
 
 
 module.exports = class AnswerFinder extends Finder {
-    constructor(data, test) {
-        super(data, test, false)
+    constructor(data, test, isWeird) {
+        super(data, test, false, isWeird)
     }
 
     cleanAnswers() {
@@ -21,7 +21,7 @@ module.exports = class AnswerFinder extends Finder {
             // Remove copyright stuff at end on last question
             let endIndex;
             if (i === this.test.info.grading.length - 1) {
-                endIndex = question.findIndex(text => (text.y < 10 || text.R[0].T.includes("Copyright")));
+                endIndex = question.findIndex(text => !this.isWeird && (text.y < 10 || text.R[0].T.includes("Copyright")));
                 if (endIndex < 0) endIndex = undefined
             }
 
@@ -33,8 +33,7 @@ module.exports = class AnswerFinder extends Finder {
     formatAnswer(question, i) { }
 
     run() {
-        super.run(this.base, "", {});
-        this.isWeird = weirdTests.includes(this.test.info.name)
+        super.run();
         if (this.indexes?.length !== this.test.info.grading.length) {
             save("err/ans" + this.test.info.name, this.combined);
             return console.error("Could not find all answers for " + this.test.info.name);
@@ -43,8 +42,9 @@ module.exports = class AnswerFinder extends Finder {
             save("questions", this.questions)
             save("strings", buildString(this.questions))
         }
-        this.strings = this.cleanAnswers();
 
+        this.strings = this.cleanAnswers();
+        if (TESTING) { save("cleaned", this.strings) }
         return this.questions.map((question, i) => this.formatAnswer(question, i))
     }
 }

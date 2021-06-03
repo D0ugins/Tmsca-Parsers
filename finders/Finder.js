@@ -1,17 +1,18 @@
-const { getTexts, buildString, splitByIndexes, save } = require("../utils")
+const { getTexts, buildString, save } = require("../utils")
 
 module.exports = class Finder {
-    constructor(data, test, isQuestions) {
+    constructor(data, test, isQuestions, isWeird) {
         this.data = data;
-        this.test = test
-        this.isQuestions = isQuestions
+        this.test = test;
+        this.isQuestions = isQuestions;
+        this.isWeird = isWeird;
 
         this.PAGES = test.info.pages[isQuestions ? "test" : "key"];
 
         this.height = data.formImage.Pages[0].Height;
         this.width = data.formImage.Width;
 
-        this.texts = getTexts(this.data, this.PAGES)
+        this.texts = getTexts(this.data, this.PAGES);
         this.combined = buildString(this.texts, this.PAGES);
 
         if (TESTING) {
@@ -20,13 +21,13 @@ module.exports = class Finder {
     }
 
     formatCoordinates(top, left, right, bottom) {
-        const PADDING = [1, 1, 1, 1]
+        const PADDING = [1, 1, 1, 1];
 
         // Convert to percentages
-        const hscale = this.width / 100
-        const vscale = this.height / 100
-        top /= vscale; bottom /= vscale
-        left /= hscale; right /= hscale
+        const hscale = this.width / 100;
+        const vscale = this.height / 100;
+        top /= vscale; bottom /= vscale;
+        left /= hscale; right /= hscale;
 
         // Move orgin to bottom
         top = 100 - top;
@@ -42,15 +43,15 @@ module.exports = class Finder {
         return [
             { x: left, y: top },
             { x: right, y: bottom }
-        ]
+        ];
     }
 
     findPageSplits(indexes) {
-        const pages = []
+        const pages = [];
         for (let i = 1; i < this.PAGES.length; i++) {
-            pages.push(indexes.findIndex(index => index.page === i))
+            pages.push(indexes.findIndex(index => index.page === i));
         }
-        return pages
+        return pages;
     }
 
     findTopLefts(questions, pageSplits, height) {
@@ -74,17 +75,13 @@ module.exports = class Finder {
         let indexes = [];
         let currPage = 0;
         const maxPage = this.PAGES.length - 1;
-        const exceptions = Object.keys(this.exceptionList ?? {}).filter(key => key.startsWith(name))
-
-        const hasException = exceptions.length > 0;
-        const exceptionNums = exceptions.map(exception => parseInt(exception.split(" ").slice(-1)[0]));
 
         for (let i = 1; i <= this.test.info.grading.length; i++) {
             const str = this.combined[currPage].str;
             const search = this.base.replace("{i}", i);
 
             // Handle tests with messed up formatting
-            if (hasException && exceptionNums.includes(i)) {
+            if (this.hasException && this.exceptionNums.includes(i)) {
                 switch (this.exceptionList[`${name}, ${i}`][0]) {
                     case "startParenth":
                         const index = str.indexOf(i + ")");
@@ -97,8 +94,8 @@ module.exports = class Finder {
             }
 
             // If first question, ignore stuff before
-            const r = (i === 1 ? "" : this.startRegex) + search
-            let index = str.search(new RegExp(r))
+            const r = (i === 1 ? "" : this.startRegex) + search;
+            let index = str.search(new RegExp(r));
 
             // Account for all the stuff detected at start
             index += str.slice(index).indexOf("(");
@@ -118,14 +115,38 @@ module.exports = class Finder {
             // Get index of the text object that corresponds with that part of the combined string
             indexes.push({ page: currPage, index: this.combined[currPage].indexMap[index] });
         }
-        return indexes
+        return indexes;
+    }
+
+    // Needs to be overwritten by some test formats so define here instead
+    splitByIndexes(data, indexes) {
+        if (indexes.length === 0) return data;
+        const splits = []
+        for (let i = 0; i < indexes.length; i++) {
+            const { index, page = 0 } = indexes[i];
+            // If at end of array next will be undefined which includes the rest
+            let { index: nextIndex, page: nextPage } = indexes[i + 1] ?? {};
+
+            // If next is on next page, set next to undefined which includes the rest
+            if (nextPage > page) nextIndex = undefined;
+
+            // Slice based on index and nest and append
+            splits.push(data[page].slice(index, nextIndex));
+        }
+        return splits;
     }
 
     run() {
+        this.exceptions = Object.keys(this.exceptionList ?? {}).filter(key => key.startsWith(this.test.info.name));
+
+        this.hasException = this.exceptions.length > 0;
+        this.exceptionNums = this.exceptions.map(exception => parseInt(exception.split(" ").slice(-1)[0]));
+
         this.indexes = this.findStarts();
         if (!this.indexes) {
-            return console.error("Could not find all indexes for test " + this.test.info.name)
+            return console.error("Could not find all indexes for test " + this.test.info.name);
         }
-        this.questions = splitByIndexes(this.texts, this.indexes);
+        // Some finders need to define a custom question creation function
+        if (!this.questions) this.questions = this.splitByIndexes(this.texts, this.indexes);
     }
 }

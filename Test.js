@@ -3,8 +3,8 @@ const path = require("path");
 module.exports = class Test {
     constructor(pdfpath) {
         // Generate basic info
-        const { name, dir } = path.parse(pdfpath)
-        const pathArr = dir.split("/")
+        const { name, dir } = path.parse(pdfpath);
+        const pathArr = dir.split("/");
         this.info = {
             name,
             dir,
@@ -15,7 +15,7 @@ module.exports = class Test {
             year: pathArr[2].split(" ").slice(-1)[0],
             // Get number by first removing the 4 character leveltype code at start, then remove the year
             number: name.slice(4).split(" ").slice(0, -1).join(" ")
-        }
+        };
 
         // Generate grading info
         const { level, type } = this.info
@@ -46,6 +46,5 @@ module.exports = class Test {
                 };
                 break;
         }
-
     }
 }

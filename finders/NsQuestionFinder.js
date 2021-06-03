@@ -2,8 +2,8 @@ const { save } = require("../utils");
 const Finder = require("./Finder")
 
 module.exports = class NsQuestionFinder extends Finder {
-    constructor(data, test) {
-        super(data, test, true);
+    constructor(data, test, isWeird) {
+        super(data, test, true, isWeird);
     }
 
     findCol(start, end) {
@@ -25,7 +25,7 @@ module.exports = class NsQuestionFinder extends Finder {
     }
 
     calcBoundingBoxes() {
-        this.boundingBoxes = []
+        this.boundingBoxes = [];
         for (let i = 0; i < 80; i++) {
             const page = i >= this.pageSplit ? 1 : 0;
             const column = i >= this.colSplits[page] ? 1 : 0;
@@ -74,7 +74,7 @@ module.exports = class NsQuestionFinder extends Finder {
     };
 
     run() {
-        super.run()
+        super.run();
         if (this.indexes?.length !== this.test.info.grading.length) {
             save("err/ques" + this.test.info.name, this.combined);
             return console.error("Could not find all questions for " + this.test.info.name);
