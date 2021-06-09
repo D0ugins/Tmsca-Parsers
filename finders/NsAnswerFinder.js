@@ -3,9 +3,7 @@ const { save, decimalToFrac, fracToDecimal, buildString, improperToMixed } = req
 const qs = require("querystring")
 
 module.exports = class NsAnswerFinder extends AnswerFinder {
-
-    base = "\\({i}\\)";
-    startRegex = "";
+    regex = /\((?<qnum>\d+)\)/g;
     exceptionList = {};
 
     formatAnswer(question, i) {

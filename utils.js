@@ -274,6 +274,22 @@ const buildString = texts => texts.map(page => {
     return { str, indexMap };
 })
 
+const splitByIndexes = (data, indexes) => {
+    if (indexes.length === 0) return data;
+    const splits = []
+    for (let i = 0; i < indexes.length; i++) {
+        const { index, page = 0, qnum = 1 } = indexes[i];
+        // If at end of array next will be undefined which includes the rest
+        let { index: nextIndex, page: nextPage } = indexes[i + 1] ?? {};
+
+        // If next is on next page, set next to undefined which includes the rest
+        if (nextPage > page) nextIndex = undefined;
+
+        // Slice based on index and nest and append
+        splits.push({ data: data[page].slice(index, nextIndex), qnum });
+    }
+    return splits.sort((a, b) => a.qnum - b.qnum).map(split => split.data);
+}
 
 const gcd = (a, b) => b ? gcd(b, a % b) : a;
 
@@ -310,4 +326,4 @@ const range = (start, end) => {
     return arr;
 }
 
-module.exports = { save, weirdTests, loadPdf, fixPdf, getTexts, buildString, decimalToFrac, fracToDecimal, improperToMixed, range }
+module.exports = { save, weirdTests, loadPdf, fixPdf, getTexts, buildString, splitByIndexes, decimalToFrac, fracToDecimal, improperToMixed, range }

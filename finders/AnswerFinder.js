@@ -15,7 +15,7 @@ module.exports = class AnswerFinder extends Finder {
         this.questions = this.questions.map((question, i) => {
             const str = strings[i].str
             // Get end of (1) section
-            let index = str.indexOf(this.base.trim().slice(-1)) + 1
+            let index = str.indexOf(this.regex.toString().trim().slice(-3, -2)) + 1
             // Get end of whitespace
             index += str.slice(index).length - str.slice(index).trimStart().length
             // Remove copyright stuff at end on last question
@@ -28,6 +28,32 @@ module.exports = class AnswerFinder extends Finder {
             return question.slice(strings[i].indexMap[index], endIndex)
         })
         return buildString(this.questions)
+    }
+
+    findStarts() {
+        // Find where all the questions start
+        let indexes = [];
+        let currPage = 0;
+        const maxPage = this.PAGES.length - 1;
+
+        while (currPage <= maxPage) {
+            const page = this.combined[currPage];
+            let match = null;
+            const matches = [];
+            // Get all matches of regex on current page
+            while (match = this.regex.exec(page.str)) matches.push(match);
+
+            // For each match push to index array, include qnum in case out of order
+            for (const match of matches) {
+                indexes.push({
+                    page: currPage,
+                    index: this.combined[currPage].indexMap[match.index],
+                    qnum: parseInt(match.groups.qnum)
+                });
+            }
+            currPage++;
+        }
+        return indexes;
     }
 
     formatAnswer(question, i) { }

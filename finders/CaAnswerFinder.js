@@ -2,23 +2,20 @@ const AnswerFinder = require('./AnswerFinder')
 const qs = require("querystring")
 
 module.exports = class CaAnswerFinder extends AnswerFinder {
-    base = "{i}\\s*=";
+    regex = this.test.info.level === "Middle" ? /(?<qnum>\d+)\s*=/g : /\d{2}\w-(?<qnum>\d+)\s*=/g;
+
     exceptionList = {
         "MSCA STATE 18-19, 26": ["misexponent"],
         "ELCA2 20-21, 48": ["misx"]
     };
 
-    // Overide for normal findstarts method
     findStarts() {
-        // Find where all the questions start
-        const name = this.test.info.name;
+        if (this.test.info.level === "Middle") {
+            const name = this.test.info.name;
+            let indexes = [];
+            let currPage = 0;
+            const maxPage = this.PAGES.length - 1;
 
-        let indexes = [];
-        let currPage = 0;
-
-        const maxPage = this.PAGES.length - 1;
-
-        if (this.test.info.level !== "High") {
             let splitPage = this.combined[currPage].str.split("=");
             for (let i = 1; i <= this.test.info.grading.length; i++) {
                 let strIndex = 0
@@ -56,50 +53,13 @@ module.exports = class CaAnswerFinder extends AnswerFinder {
                     // If still cant find something went wrong
                     if (prevIndex < 0) return console.error("Could not find " + i + " for " + name);
                 }
-
                 indexes.push({ page: currPage, index: this.combined[currPage].indexMap[strIndex] });
             }
-
+            return indexes
         }
         else {
-            while (currPage <= maxPage) {
-                const page = this.combined[currPage];
-                let match = null;
-                const regex = /\d{2}\w-(?<qnum>\d+)\s*=/g;
-                const matches = [];
-                while (match = regex.exec(page.str)) matches.push(match);
-
-                for (const match of matches) {
-                    indexes.push({
-                        page: currPage,
-                        index: this.combined[currPage].indexMap[match.index + match[0].length],
-                        qnum: parseInt(match.groups.qnum)
-                    });
-                }
-                currPage++;
-            }
-
-            // Overwrite splitByIndexes to work with out of order questions
-            // console.log(indexes)
-            this.splitByIndexes = (data, indexes) => {
-                if (indexes.length === 0) return data;
-                const splits = []
-                for (let i = 0; i < indexes.length; i++) {
-                    const { index, page = 0, qnum } = indexes[i];
-                    // If at end of array next will be undefined which includes the rest
-                    let { index: nextIndex, page: nextPage } = indexes[i + 1] ?? {};
-
-                    // If next is on next page, set next to undefined which includes the rest
-                    if (nextPage > page) nextIndex = undefined;
-
-                    // Slice based on index and nest and append
-                    splits.push({ data: data[page].slice(index, nextIndex), qnum });
-                }
-                return splits.sort((a, b) => a.qnum - b.qnum).map(split => split.data);
-            }
-
+            return super.findStarts();
         }
-        return indexes;
     }
 
     formatAnswer(question, i) {
@@ -142,14 +102,11 @@ module.exports = class CaAnswerFinder extends AnswerFinder {
             return { base: parseFloat(text.split("(")[0]), sd: parseInt(sd) };
         }
 
-        if (qnum === 70) debugger;
         // Some questions on some tests have different formatting
         if (this.test.info.level === "High" && !text.includes("x10")) {
-            // Find start of next question
-            const endIndex = texts.findIndex(str => /\d{2}[A-Za-z]/.test(str));
-            // Find engativse
+            // Find negatives after last =
             const negatives = [];
-            for (let i = 0; i < endIndex; i++) {
+            for (let i = texts.lastIndexOf("="); i < texts.length; i++) {
                 const str = texts[i];
                 if (str === "-") negatives.push(i);
             }
@@ -159,7 +116,7 @@ module.exports = class CaAnswerFinder extends AnswerFinder {
             // If only one deterimine if it was exponent or base
             if (negatives.length === 1) {
                 // Get top of everything before it
-                const top = Math.min(...question.slice(0, endIndex).map(t => t.y));
+                const top = Math.min(...question.map(t => t.y));
                 // If at the top (or very close) it was in exponent, else in base
                 if (Math.abs(question[negatives[0]].y - top) < .05) negativeExponent = true;
                 else negativeBase = true;
